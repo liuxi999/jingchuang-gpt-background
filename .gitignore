@@ -1,0 +1,14 @@
+node_modules/
+dist/
+output/
+.playwright-cli/
+local-consent.json
+session.json
+*.log
+*.lnk
+*.mp4
+*.webm
+*.png
+*.jpg
+*.jpeg
+*.webp

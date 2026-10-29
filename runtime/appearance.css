@@ -1,0 +1,64 @@
+html[data-jingchuang-active] body{background:var(--jc-base,#0b1220)!important}
+html[data-jingchuang-active] #root{position:relative;z-index:1;background:transparent!important}
+html[data-jingchuang-active] :is([data-app-shell-frame],[data-app-shell-page-surface=true],#root>div){background:transparent!important}
+html[data-jingchuang-active],html[data-jingchuang-active] :where(#root,[data-theme],[data-radix-popper-content-wrapper],[role=menu]){
+--app-color-background-surface:var(--jc-shell)!important;--app-color-background-surface-under:var(--jc-shell)!important;
+--color-token-bg-primary:var(--jc-shell)!important;--color-token-main-surface-primary:var(--jc-shell)!important;--chat-background-color:transparent!important;
+--app-color-background-elevated-primary:var(--jc-menu)!important;--app-color-background-elevated-primary-opaque:var(--jc-menu)!important;
+--app-color-background-elevated-secondary:var(--jc-menu)!important;--app-color-background-elevated-secondary-opaque:var(--jc-menu)!important;
+--menu-background-color:var(--jc-menu)!important;--app-shell-sidebar-popover-background:var(--jc-menu)!important;
+--composer-background-color:var(--jc-composer)!important;--color-background-composer-surface:var(--jc-composer)!important}
+/* Menu tokens are scoped to actual popup surfaces, never to all host dialogs.
+   GPT uses both semantic/Radix menus and CSS-module MenuList/Popover surfaces. */
+html[data-jingchuang-active] :is([role=menu],[data-radix-menu-content],[data-radix-popover-content],[class*="_MenuList_"],[class*="_Popover_"]:has([role=menu],[class*="_MenuList_"])){
+--menu-background-color:transparent!important;--color-surface-elevated:transparent!important;--color-surface-elevated-secondary:transparent!important;
+background:var(--jc-menu)!important;backdrop-filter:blur(12px)}
+/* A single popup may wrap another menu/list; only its outer surface paints.
+   Portaled submenus remain independent surfaces because they are not descendants. */
+html[data-jingchuang-active] :is([role=menu],[data-radix-menu-content],[data-radix-popover-content],[class*="_MenuList_"],[class*="_Popover_"]:has([role=menu],[class*="_MenuList_"])) :is([role=menu],[data-radix-menu-content],[data-radix-popover-content],[class*="_MenuList_"]){background:transparent!important;backdrop-filter:none!important}
+/* Current GPT's composer paints its layout surface, not a surrounding form.
+   Home paints the body; normal/expanded composers paint the layout root. */
+html[data-jingchuang-active] #root [data-composer-layout][data-composer-surface-variant]{--composer-layout-surface-background:var(--jc-composer)!important}
+html[data-jingchuang-active] #root :is([data-composer-layout][data-composer-surface-variant]:not([data-composer-utility-bar-variant="home"]),[data-composer-layout][data-composer-surface-variant][data-composer-utility-bar-variant="home"] [data-composer-body]){background:var(--jc-composer)!important;backdrop-filter:blur(10px)}
+/* Older textarea/form layouts still work without adding a second opaque layer. */
+html[data-jingchuang-active] #root form:has(:is(textarea,[contenteditable=true])):not(:has([data-composer-layout][data-composer-surface-variant])){background:var(--jc-composer)!important;backdrop-filter:blur(10px)}
+html[data-jingchuang-active] #root :is(textarea,[contenteditable=true]){background:transparent!important}
+html[data-jingchuang-active] #root :is(pre,[role=dialog]){background-color:var(--jc-readable)!important}
+#jingchuang-surface{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;background:radial-gradient(ellipse at 15% 20%,#233751,transparent 65%),linear-gradient(145deg,#091321,#1b263b)}
+#jingchuang-controls{position:fixed;right:18px;bottom:18px;z-index:2147483646;font:13px/1.5 'Segoe UI','Microsoft YaHei',sans-serif;color:var(--jc-ui-fg,#e1e8f3);color-scheme:dark}
+#jingchuang-controls *{box-sizing:border-box}
+#jingchuang-controls [hidden]{display:none!important}
+#jingchuang-controls button,#jingchuang-controls select{font:inherit;color:inherit;border:1px solid var(--jc-ui-border,#40536a);border-radius:7px;background:var(--jc-ui-control,#1a2b40);padding:7px 10px}
+#jingchuang-controls button{cursor:pointer}#jingchuang-controls button:hover{filter:brightness(1.12)}#jingchuang-controls button:disabled{opacity:.45;cursor:default}
+#jingchuang-controls :is(button,input,select):focus-visible{outline:2px solid #65b4f2;outline-offset:2px}
+#jingchuang-settings{width:min(440px,calc(100vw - 36px));max-height:80vh;overflow:auto;overscroll-behavior:contain;padding:16px;margin-bottom:10px;border:1px solid var(--jc-ui-border,#40536a);border-radius:14px;background:var(--jc-ui-bg,#111d2d);box-shadow:0 16px 55px #0006}
+#jingchuang-settings header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+#jingchuang-settings strong{font-size:17px}#jingchuang-settings small{font-size:11px;font-weight:normal;opacity:.75}
+#jingchuang-settings [role=tablist]{display:flex;gap:6px;margin-bottom:16px}
+#jingchuang-settings [role=tab]{flex:1}#jingchuang-settings [role=tab][aria-selected=true]{border-color:#68b4ed;background:var(--jc-ui-selected,#21486b)}
+#jingchuang-settings .jc-actions,#jingchuang-settings footer,.jc-launch{display:flex;gap:8px;flex-wrap:wrap}
+#jingchuang-settings .jc-hint{font-size:12px;opacity:.76;line-height:1.65;margin:10px 0}
+#jingchuang-settings label{display:flex;align-items:center;gap:9px;margin:15px 0;flex-wrap:wrap}
+#jingchuang-settings input[type=range]{width:150px;accent-color:#6cb8f1}#jingchuang-settings input[type=checkbox]{accent-color:#6cb8f1}
+#jingchuang-settings output{font-variant-numeric:tabular-nums;min-width:38px}
+#jingchuang-settings .jc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+#jingchuang-settings .jc-card{min-width:0;position:relative}#jingchuang-settings .jc-pick{display:block;padding:5px;width:100%;text-align:left;overflow:hidden}
+#jingchuang-settings .jc-pick[aria-pressed=true]{border-color:#68b4ed;box-shadow:0 0 0 1px #68b4ed}
+#jingchuang-settings .jc-pick img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:4px;background:#172338}
+#jingchuang-settings .jc-pick span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:5px}
+#jingchuang-settings .jc-pick small{display:block}#jingchuang-settings .jc-delete{font-size:11px;padding:2px 8px;margin-top:4px}
+#jc-status{font-size:12px;overflow-wrap:anywhere;margin:12px 0;opacity:.85}
+#jingchuang-settings footer{padding-top:12px;border-top:1px solid var(--jc-ui-border,#40536a)}
+#jingchuang-settings header{position:sticky;top:-16px;z-index:2;padding:8px 0;background:var(--jc-ui-bg,#111d2d)}
+#jingchuang-settings footer{position:sticky;bottom:-16px;z-index:2;padding-bottom:8px;background:var(--jc-ui-bg,#111d2d)}
+#jingchuang-settings .jc-scope{font-weight:600;overflow-wrap:anywhere;margin:8px 0}
+#jingchuang-settings hr{border:0;border-top:1px solid var(--jc-ui-border,#40536a);margin:18px 0}
+#jingchuang-settings .jc-section-title{font-size:13px}
+#jingchuang-settings .jc-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+#jingchuang-settings figure{margin:0;min-width:0}#jingchuang-settings figcaption{font-size:11px;opacity:.8;margin-bottom:5px}
+#jingchuang-settings .jc-preview-stage{padding:8px;border-radius:8px;min-height:85px;background:repeating-conic-gradient(#698daa 0% 25%,#c4a993 0% 50%) 0 0/28px 28px;color:var(--jc-ui-fg,#e1e8f3)}
+#jingchuang-settings .jc-preview-menu{background:var(--jc-menu);border-radius:6px;padding:4px 7px;border:1px solid var(--jc-ui-border)}
+#jingchuang-settings .jc-preview-menu span{display:block;padding:2px;font-size:11px}
+#jingchuang-settings .jc-preview-composer{background:var(--jc-composer);border-radius:8px;min-height:65px;padding:8px;font-size:11px;border:1px solid var(--jc-ui-border)}
+#jingchuang-settings .jc-preview-composer span{display:block;text-align:right;font-size:13px}
+@media(max-width:420px){#jingchuang-controls{right:10px;bottom:10px}#jingchuang-settings{width:calc(100vw - 20px);padding:12px}}

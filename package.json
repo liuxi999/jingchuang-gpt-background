@@ -1,0 +1,14 @@
+{
+  "name": "jingchuang-gpt-background",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Local backgrounds inside the Windows GPT client; never changes the Windows desktop wallpaper.",
+  "engines": {"node": ">=22.3.0"},
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "preview": "node scripts/preview.mjs",
+    "install:local": "node scripts/install.mjs",
+    "package": "node scripts/package.mjs"
+  }
+}

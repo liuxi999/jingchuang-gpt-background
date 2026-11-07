@@ -5,15 +5,16 @@ import {fileURLToPath} from 'node:url';
 import {buildPayload} from '../runtime/integration.mjs';
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
 const payload=await buildPayload(join(root,'runtime'));
+const reattachPayload=await buildPayload(join(root,'runtime'),{playStartup:false,stopToken:'preview-session'});
 const routes=new Map([['/',['tests/host.html','text/html']],['/host.css',['tests/host.css','text/css']],['/host.mjs',['tests/host.mjs','text/javascript']]]);
 routes.set('/surfaces.html',['tests/surfaces.html','text/html']);routes.set('/surfaces.css',['tests/surfaces.css','text/css']);routes.set('/surfaces.mjs',['tests/surfaces.mjs','text/javascript']);
 const server=createServer(async(req,res)=>{
   try{
     if(!['GET','HEAD'].includes(req.method)){res.writeHead(405);res.end();return;}
-    const path=new URL(req.url,'http://127.0.0.1').pathname;
+    const url=new URL(req.url,'http://127.0.0.1'),path=url.pathname;
     const route=routes.get(path);
     if(path!=='/payload.mjs'&&!route){res.writeHead(404);res.end();return;}
-    const data=path==='/payload.mjs'?Buffer.from(payload):await readFile(join(root,route[0]));
+    const data=path==='/payload.mjs'?Buffer.from(url.searchParams.has('reattach')?reattachPayload:payload):await readFile(join(root,route[0]));
     res.writeHead(200,{'Content-Type':(path==='/payload.mjs'?'text/javascript':route[1])+'; charset=utf-8','Content-Length':data.length,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'"});
     res.end(req.method==='HEAD'?'':data);
   }catch{res.writeHead(500);res.end('Preview unavailable');}

@@ -39,7 +39,7 @@ test('startup is a separate non-looping slot, optional sound, and emits completi
   const env=browser(),player=createMediaPlayer(env.win,env.container);let complete=0;
   await player.apply(item(file('intro.mp4')),{...prefs,startupSound:true},'startup',()=>complete++);
   const active=env.elements.find(x=>!x.removed);assert.equal(active.loop,false);assert.equal(active.muted,false);active.dispatchEvent(new Event('ended'));active.dispatchEvent(new Event('ended'));assert.equal(complete,1);
-  player.fade();assert.equal(active.paused,true);assert.equal(active.style.opacity,'0');player.dispose();
+  assert.equal(player.clearStartup(),true);assert.equal(active.paused,true);assert.equal(active.removed,true);assert.equal(player.status().role,null);player.dispose();
 });
 test('blocked audible startup automatically retries muted without skipping the animation',async()=>{
   const env=browser({playFailures:1}),player=createMediaPlayer(env.win,env.container),notices=[],errors=[];

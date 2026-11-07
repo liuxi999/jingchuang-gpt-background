@@ -15,7 +15,7 @@
 
 ## 一键安装
 
-1. 从 [Releases](https://github.com/liuxi999/jingchuang-gpt-background/releases/latest) 下载 `jingchuang-0.3.0-win-x64.zip`。
+1. 从 [Releases](https://github.com/liuxi999/jingchuang-gpt-background/releases/latest) 下载 Windows x64 安装包。
 2. 解压 ZIP，不要直接在压缩包内运行文件。
 3. 双击 `Install.cmd`，等待出现安装结果。
 4. 完全退出正在运行的 GPT，再从桌面的 **景窗 · GPT背景** 快捷方式打开。首次启动阅读提示后输入大写 `YES`。
@@ -32,7 +32,9 @@
 - **启动动画**：选择视频，设置启用、声音、跳过和重播。
 - **外观**：调整当前背景及 GPT 菜单、输入框的显示效果。
 
-设置面板可点击外部、按 `Esc` 或点击关闭按钮收起。没有素材时使用默认渐变背景。视频背景默认静音循环，启动动画默认关闭。
+设置面板可点击外部、按 `Esc` 或点击关闭按钮收起。没有素材时使用默认渐变背景。视频背景默认静音循环；选择启动视频后会自动启用，仍可手动关闭。
+
+从景窗启动后，首个主窗口会先显示启动动画，再进入聊天界面；读取视频时由过渡底色遮住主页面。辅助进程会在 GPT 运行期间自动恢复重建后的主页面，且不会重复播放启动动画。
 
 ## 隐私与风险
 
@@ -63,7 +65,7 @@
 在下载目录运行：
 
 ```powershell
-Get-FileHash .\jingchuang-0.3.0-win-x64.zip -Algorithm SHA256
+Get-FileHash .\jingchuang-0.3.1-win-x64.zip -Algorithm SHA256
 ```
 
 将结果与 Release 中的 `SHA256SUMS.txt` 对照。

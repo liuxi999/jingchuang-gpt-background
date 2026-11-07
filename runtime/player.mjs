@@ -1,6 +1,6 @@
 export function createMediaPlayer(win,container) {
   const doc=win.document,candidates=new Set();
-  let current=null,generation=0,disposed=false,preferences={},context={paused:false,hidden:false,reduced:false},ended=null;
+  let current=null,generation=0,disposed=false,preferences={},context={paused:false,hidden:false,reduced:false};
   const types={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',mp4:'video/mp4',webm:'video/webm'};
   const allowed=new Set(Object.values(types));
   function validate(file,role='background'){
@@ -21,8 +21,9 @@ export function createMediaPlayer(win,container) {
   function startVideo(candidate){
     if(candidate.playingPromise)return;
     const e=candidate.element;
+    function started(){if(candidate.role==='startup'&&!held(candidate))context.onStartupPlaying?.();}
     const attempt=(async()=>{
-      try{await e.play();return;}
+      try{await e.play();}
       catch{
         if(held(candidate))return;
         if(candidate.role==='startup'&&preferences.startupSound&&!candidate.autoplayMuted){
@@ -30,11 +31,12 @@ export function createMediaPlayer(win,container) {
           try{
             await e.play();
             if(!held(candidate))context.onNotice?.('启动视频声音被客户端阻止，已自动静音播放');
-            return;
+            started();return;
           }catch{if(held(candidate))return;}
         }
-        context.onError?.('视频播放被客户端阻止，请暂停后继续或换一个文件');
+        context.onError?.('视频播放被客户端阻止，请暂停后继续或换一个文件',candidate.role);return;
       }
+      started();
     })();
     candidate.playingPromise=attempt;
     void attempt.finally(()=>{if(candidate.playingPromise===attempt)candidate.playingPromise=null;});
@@ -89,7 +91,7 @@ export function createMediaPlayer(win,container) {
       }finally{release(candidate);}
     },
     async apply(item,prefs,role='background',onEnded){
-      const ticket=++generation;preferences=prefs;ended=onEnded;
+      const ticket=++generation;preferences=prefs;
       for(const candidate of [...candidates])if(candidate!==current&&candidate.purpose==='apply')release(candidate);
       if(role==='startup'&&current?.kind==='video')current.element.pause();
       if(!item){release(current);current=null;return true;}
@@ -99,12 +101,23 @@ export function createMediaPlayer(win,container) {
         candidate=await decode(item.blob,item.type,'apply');
         if(disposed||ticket!==generation){release(candidate);return false;}
         const previous=current;current=candidate;candidate.role=role;
-        if(role==='startup')candidate.element.addEventListener('ended',()=>{if(current===candidate)ended?.();},{once:true});
+        if(role==='startup'){
+          let previousTime=0;
+          const element=candidate.element;
+          element.addEventListener('ended',()=>{if(current===candidate)onEnded?.();},{once:true});
+          element.addEventListener('error',()=>{if(current===candidate&&!candidate.released)context.onError?.('启动视频播放失败',role);});
+          element.addEventListener('timeupdate',()=>{
+            if(!held(candidate)&&element.currentTime>previousTime){previousTime=element.currentTime;context.onStartupProgress?.();}
+          });
+        }
         candidate.element.style.opacity='1';release(previous);synchronize();return true;
       }catch(e){if(ticket===generation&&!disposed)throw e;return false;}
     },
     update(prefs,nextContext){preferences=prefs;context={...context,...nextContext};synchronize();},
-    fade(){if(current){current.element.style.transition='opacity 250ms ease';current.element.style.opacity='0';if(current.kind==='video')current.element.pause();}},
+    clearStartup(){
+      if(current?.role!=='startup')return false;
+      release(current);current=null;return true;
+    },
     status(){return {kind:current?.kind||null,role:current?.role||null,playing:current?.kind==='video'&&!current.element.paused,autoplayMuted:current?.autoplayMuted===true,mediaCount:candidates.size};},
     dispose(){disposed=true;generation++;for(const candidate of [...candidates])release(candidate);current=null;}
   };

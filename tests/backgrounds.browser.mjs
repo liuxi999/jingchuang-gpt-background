@@ -59,11 +59,59 @@ async page => {
   await choose('amber.png');await tab('启动动画');
   await page.evaluate(async()=>{const db=await new Promise(resolve=>{const r=indexedDB.open('jingchuang-gpt-background-v1',1);r.onsuccess=()=>resolve(r.result);});const item=await new Promise(resolve=>{const tx=db.transaction('media','readonly'),r=tx.objectStore('media').get('fixture-v');r.onsuccess=()=>resolve(r.result);});db.close();const transfer=new DataTransfer();transfer.items.add(new File([item.blob],'intro.webm',{type:'video/webm'}));const input=document.querySelector('input[aria-label="选择本地启动视频"]');input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}));});
   await page.waitForFunction(()=>!!window.__jingchuangAppearance.status().startupId&&!window.__jingchuangAppearance.status().busy);await saved();
-  await page.getByRole('button',{name:'重播启动动画',exact:true}).click();await page.waitForFunction(()=>window.__jingchuangAppearance.status().player.role==='startup');
+  const replay=async()=>{await tab('启动动画');await page.getByRole('button',{name:'重播启动动画',exact:true}).click();};
+  const startupGate=()=>page.waitForFunction(()=>{const s=window.__jingchuangAppearance.status(),surface=document.querySelector('#jingchuang-surface');return s.phase==='startup'&&surface.style.pointerEvents==='auto'&&surface.style.zIndex==='2147483644'&&surface.style.opacity==='1';});
+  const playingIntro=()=>page.waitForFunction(()=>{const s=window.__jingchuangAppearance.status();return s.phase==='startup'&&s.player.role==='startup'&&s.player.playing;});
+  const chatBackground=()=>page.waitForFunction(()=>window.__jingchuangAppearance.status().phase==='background'&&window.__jingchuangAppearance.status().player.role==='background');
+  const checkChat=async()=>{
+    const input=page.getByRole('textbox',{name:'模拟聊天输入框'});
+    await input.click();await input.fill('回归测试');if(await input.inputValue()!=='回归测试')throw Error('Chat input was blocked');
+    await page.keyboard.press('Control+Alt+b');await panel.waitFor();
+    await page.keyboard.press('Escape');await panel.waitFor({state:'hidden'});
+    await toggle.click();await panel.waitFor();
+    await page.keyboard.press('Escape');
+  };
+  await replay();await startupGate();await playingIntro();
   const intro=await page.evaluate(()=>{const v=document.querySelector('#jingchuang-surface video');return {fit:v.style.objectFit,position:v.style.objectPosition,blur:v.style.filter,opacity:document.querySelector('#jingchuang-surface').style.opacity};});
   if(intro.fit!=='cover'||intro.position!=='50% 50%'||intro.blur!=='none'||intro.opacity!=='1')throw Error('Startup inherited background configuration');
-  await page.getByRole('button',{name:'跳过启动动画',exact:true}).click();await page.waitForFunction(()=>window.__jingchuangAppearance.status().phase==='background'&&window.__jingchuangAppearance.status().player.role==='background');
-  checks.push('Startup video uses cover/center/full strength without inheriting the selected wallpaper configuration');
+  await chatBackground();await checkChat();
+
+  await replay();await startupGate();await playingIntro();
+  await page.evaluate(()=>{
+    const src=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,'src');
+    Object.defineProperty(HTMLImageElement.prototype,'src',{...src,set(value){
+      if(this.closest('#jingchuang-surface')){
+        window.__resumeBackground=()=>{Object.defineProperty(HTMLImageElement.prototype,'src',src);src.set.call(this,value);};
+      }else src.set.call(this,value);
+    }});
+  });
+  await page.getByRole('button',{name:'跳过启动动画',exact:true}).click();
+  await page.waitForFunction(()=>!!window.__resumeBackground);
+  await checkChat();await page.evaluate(()=>window.__resumeBackground());await chatBackground();
+  checks.push('Intro completion and skip expose the chat and settings even while the background is still loading');
+
+  for(const failure of ['blocked','stalled']){
+    await page.evaluate(mode=>{
+      const play=HTMLMediaElement.prototype.play;
+      window.__restoreFixturePlay=()=>{HTMLMediaElement.prototype.play=play;};
+      HTMLMediaElement.prototype.play=function(){
+        if(this.loop||!this.closest('#jingchuang-surface'))return play.call(this);
+        return mode==='stalled'?Promise.resolve():Promise.reject(Error('Fixture blocked playback'));
+      };
+    },failure);
+    await replay();
+    if(failure==='stalled')await startupGate();
+    await page.waitForFunction(text=>window.__jingchuangAppearance.status().message.includes(text),failure==='blocked'?'播放被客户端阻止':'连续 10 秒没有播放进度');
+    await page.evaluate(()=>window.__restoreFixturePlay());await chatBackground();await checkChat();
+  }
+  checks.push('Blocked playback and the 10-second stall timeout return control to the host');
+
+  await tab('启动动画');await page.getByRole('checkbox',{name:'启用启动动画'}).check();await saved();
+  await page.route('**/payload.mjs',route=>route.continue({url:route.request().url()+'?reattach'}));
+  await page.reload();await page.waitForFunction(()=>window.__jingchuangAppearance?.presented);await chatBackground();
+  s=await state();if(!s.prefs.startupEnabled||s.selectedId!=='fixture-b')throw Error('Replacement lost stored appearance');
+  await checkChat();
+  checks.push('Replacement document restores the background and settings with the saved startup video enabled');
   await tab('外观');await range('菜单不透明度',39,false);await page.getByRole('button',{name:'关闭景窗设置',exact:true}).click();await saved();if((await state()).prefs.menuOpacity!==.39)throw Error('Closing settings lost pending edits');
   await range('输入框不透明度',43,false);await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});await saved();await page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});
   checks.push('Closing settings and hiding the window flush pending values');
@@ -72,6 +120,14 @@ async page => {
   const examples=await page.evaluate(()=>[getComputedStyle(document.querySelector('.jc-preview-menu')).backgroundColor,getComputedStyle(document.querySelector('.jc-preview-composer')).backgroundColor]);if(!examples[0].includes('0.52')||!examples[1].includes('0.57'))throw Error('Examples do not show the actual opacity');
   await range('背景强度',72,false);await page.evaluate(()=>window.__jingchuangAppearance.dispose());await page.reload();await page.waitForFunction(()=>window.__jingchuangAppearance?.status().presented);if((await state()).prefs.strength!==.72)throw Error('Removing appearance lost pending settings');
   checks.push('Dark/light examples match preferences; normal restore flushes pending values before reload');
-  await page.evaluate(()=>window.__jingchuangAppearance.dispose());
+  const cdp=await page.context().newCDPSession(page);
+  await cdp.send('Runtime.addBinding',{name:'__jingchuangStopWatcher'});
+  const restored=new Promise(resolve=>cdp.once('Runtime.bindingCalled',resolve));
+  await tab('外观');await page.getByRole('button',{name:'恢复 GPT 原外观',exact:true}).click();
+  const binding=await restored;
+  if(binding.name!=='__jingchuangStopWatcher'||binding.payload!=='preview-session')throw Error('Restore did not signal the current session');
+  await page.waitForFunction(()=>!window.__jingchuangAppearance);
+  await cdp.detach();
+  checks.push('Restore sends the current session token over CDP and removes the controls');
   return {passed:true,checks};
 }

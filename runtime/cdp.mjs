@@ -1,11 +1,14 @@
 // Restrict this adapter to the verified loopback listener and the main app document.
-export function mainTarget(target) {
+export function mainDocument(url) {
   try {
-    const u=new URL(target.url);
-    if(target.type!=='page'||u.protocol!=='app:'||u.hostname!=='-'||u.pathname!=='/index.html')return false;
+    const u=new URL(url);
+    if(u.protocol!=='app:'||u.hostname!=='-'||u.pathname!=='/index.html')return false;
     const route=u.searchParams.get('initialRoute')||'/';
     return !/avatar|quick.?chat|detached|mini|popover|notification|browser|review/i.test(route);
   }catch{return false;}
+}
+export function mainTarget(target) {
+  return target?.type==='page'&&mainDocument(target.url);
 }
 export function mainHostReady(host) {
   return !!host?.visible&&host.body===true&&host.root===true&&host.width>0&&host.height>0;
@@ -15,7 +18,7 @@ export function socketUrl(url,port) {
   if(u.protocol!=='ws:'||u.hostname!=='127.0.0.1'||Number(u.port)!==port||u.username||u.password||!/^\/devtools\/page\/[\w-]+$/.test(u.pathname)||u.search||u.hash)throw new Error('Rejected non-local or unexpected debugger address');
   return u.href;
 }
-export async function attach(url) {
+export async function attach(url,onEvent) {
   const ws=new WebSocket(url), pending=new Map();let serial=0,closed=false;
   function clear(error){closed=true;for(const p of pending.values()){clearTimeout(p.timer);p.reject(error);}pending.clear();}
   await new Promise((resolve,reject)=>{
@@ -27,6 +30,7 @@ export async function attach(url) {
   ws.addEventListener('close',()=>clear(new Error('Debugger disconnected')));
   ws.addEventListener('error',()=>clear(new Error('Debugger transport error')));
   ws.addEventListener('message',event=>{let msg;try{msg=JSON.parse(event.data);}catch{return;}
+    if(msg.method){onEvent?.(msg);return;}
     const p=pending.get(msg.id);if(!p)return;pending.delete(msg.id);clearTimeout(p.timer);msg.error?p.reject(new Error(msg.error.message)):p.resolve(msg.result);});
   return {
     call(method,params={},timeout=12000){return new Promise((resolve,reject)=>{

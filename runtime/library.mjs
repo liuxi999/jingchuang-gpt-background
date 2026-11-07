@@ -68,7 +68,7 @@ export function createLibrary(win,store) {
       const item={...prepared,id:win.crypto.randomUUID(),role,order,addedAt:Date.now()};
       items.set(item.id,item);dirty.set(item.id,item);
       if(role==='startup'){
-        if(startupId){items.delete(startupId);dirty.delete(startupId);removed.add(startupId);}startupId=item.id;
+        if(startupId){items.delete(startupId);dirty.delete(startupId);removed.add(startupId);}startupId=item.id;prefs.startupEnabled=true;
       }else{appearanceById.set(item.id,normalizeAppearance());if(!selectedId)selectedId=item.id;}
       changed();await persist();return item.id;
     },

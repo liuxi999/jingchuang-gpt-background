@@ -21,8 +21,8 @@ test('removing active background returns to neutral without deleting other media
   await library.remove(a);assert.equal(library.snapshot().selectedId,null);assert.equal(library.snapshot().items[0].id,b);await library.select(b);await library.select(null);assert.equal(library.snapshot().items.length,1);
 });
 test('startup video is independent, replacement removes old video and removal disables startup',async()=>{
-  const env=setup(),library=createLibrary(env.win,env.store);await library.ready;const bg=await library.add(media());const first=await library.add(media('one.mp4','video'),'startup');await library.preferences({startupEnabled:true,startupSound:true});const second=await library.add(media('two.mp4','video'),'startup');
-  assert.equal(library.snapshot().selectedId,bg);assert.equal(library.getMedia(first),null);assert.equal(library.snapshot().startupId,second);await library.remove(second);assert.equal(library.snapshot().prefs.startupEnabled,false);assert.equal(library.snapshot().startupId,null);
+  const env=setup(),library=createLibrary(env.win,env.store);await library.ready;const bg=await library.add(media());const first=await library.add(media('one.mp4','video'),'startup');assert.equal(library.snapshot().prefs.startupEnabled,true);await library.preferences({startupEnabled:false,startupSound:true});const second=await library.add(media('two.mp4','video'),'startup');
+  assert.equal(library.snapshot().prefs.startupEnabled,true);assert.equal(library.snapshot().selectedId,bg);assert.equal(library.getMedia(first),null);assert.equal(library.snapshot().startupId,second);await library.remove(second);assert.equal(library.snapshot().prefs.startupEnabled,false);assert.equal(library.snapshot().startupId,null);
   await assert.rejects(()=>library.add(media(),'startup'));
 });
 test('quota failure remains truthful and unsaved imports are retried with later preferences',async()=>{

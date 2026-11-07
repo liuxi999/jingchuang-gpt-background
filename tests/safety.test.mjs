@@ -11,10 +11,11 @@ import {mainTarget,mainHostReady,socketUrl} from '../runtime/cdp.mjs';
 import {install} from '../scripts/install.mjs';
 const root=resolve('runtime');
 async function cleanup(temp){assert.equal(dirname(resolve(temp)).toLowerCase(),resolve(tmpdir()).toLowerCase());assert.match(basename(temp),/^jingchuang-(consent|install)-/);await rm(temp,{recursive:true,force:true});}
-test('injection accepts only top main host, rejects the old appearance, and payload is self-contained JavaScript',async()=>{
+test('injection accepts only top main host, gates the first document, rejects the old appearance, and payload is self-contained JavaScript',async()=>{
   assert.equal(installAppearance({top:{}}).installed,false);
   const legacy={__bailiCodexSkin:{}};legacy.top=legacy;assert.match(installAppearance(legacy).reason,/白璃/);
-  const payload=await buildPayload(root);new vm.Script(payload);assert.ok(payload.length<150000);assert.doesNotMatch(payload,/data:video\/mp4/);
+  const payload=await buildPayload(root,{playStartup:true});new vm.Script(payload);assert.ok(payload.length<150000);assert.doesNotMatch(payload,/data:video\/mp4/);
+  assert.match(payload,/phase==='loading'&&gateStartup/);assert.match(payload,/opacity:'1',zIndex:'2147483644',pointerEvents:'auto'/);assert.match(payload,/"playStartup":true/);
 });
 test('CDP adapter rejects remote sockets and Mini/browser targets',()=>{
   assert.equal(mainTarget({type:'page',url:'app://-/index.html?initialRoute=/'}),true);
